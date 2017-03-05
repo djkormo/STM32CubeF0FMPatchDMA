@@ -53,8 +53,8 @@ uint16_t ADC_raw[6];
 
 volatile uint8_t countererror = 0;
 volatile uint8_t counter = 0;
-volatile uint16_t counteradc = 0;
-volatile uint16_t counterdac = 0;
+volatile uint8_t counteradc = 0;
+volatile uint8_t counterdac = 0;
 
 volatile uint16_t lutindex1 = 0;
 volatile uint16_t lutindex2 = 0;
@@ -65,6 +65,38 @@ volatile uint16_t value1_dac = 0;
 volatile uint16_t value2_dac = 0;
 volatile uint16_t value3_dac = 0;
 volatile uint16_t value_dac = 0;
+
+volatile uint8_t index = 0;
+
+volatile uint16_t counttimer1 = 0;
+volatile uint16_t counttimer2 = 0;
+
+volatile uint32_t R = 5000000;
+// 1st sine
+volatile uint32_t accumulator1 = 0;
+volatile uint16_t accumulator1angle = 0;
+volatile uint16_t accumulator1step = 0;
+
+volatile uint32_t accumulator1r = 5000000;
+volatile double VoltValue1 = 0.0;
+
+//2nd sine
+volatile uint32_t accumulator2 = 0;
+volatile uint16_t accumulator2angle = 0;
+volatile uint16_t accumulator2step = 0;
+volatile uint32_t accumulator2r=5000000;
+volatile double VoltValue2 = 0.0;
+
+//3rd sine
+volatile uint32_t accumulator3 = 0;
+volatile uint16_t accumulator3angle = 0;
+volatile uint16_t accumulator3step = 0;
+volatile uint32_t accumulator3r=5000000;
+volatile double VoltValue3 = 0.0;
+
+int useLeds = 1;
+int useDAC  = 1;
+int useADC =  1;
 
 
 /* USER CODE END PV */
@@ -104,14 +136,32 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_DMA_Init();
-  MX_ADC_Init();
-  MX_DAC_Init();
-  MX_TIM6_Init();
+ // if (useADC)
+  {
+	  MX_DMA_Init();
+	  MX_ADC_Init();
+	  HAL_ADC_Start_DMA(&hadc, ADC_raw, 6);
+  }
+ // if (useDAC)
+  {
+	  MX_DAC_Init();
+	  MX_TIM6_Init();
 
+	  if (HAL_DAC_Start(&hdac, DAC_CHANNEL_1) != HAL_OK) {
+	  		Error_Handler();
+	  	}
+
+	  	if (HAL_DAC_Start(&hdac, DAC_CHANNEL_2) != HAL_OK) {
+	  		Error_Handler();
+	  	}
+
+  }
   /* USER CODE BEGIN 2 */
  // start DMA
-  HAL_ADC_Start_DMA(&hadc, ADC_raw, 6);
+
+
+  // use DAC
+
 
   /* USER CODE END 2 */
 
@@ -133,15 +183,16 @@ int main(void)
 void SystemClock_Config(void)
 {
 
-  RCC_OscInitTypeDef RCC_OscInitStruct;
-  RCC_ClkInitTypeDef RCC_ClkInitStruct;
+	RCC_OscInitTypeDef RCC_OscInitStruct;
+	RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-  RCC_OscInitStruct.HSICalibrationValue = 16;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI14|RCC_OSCILLATORTYPE_HSI48;
+	RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
+	RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
+	RCC_OscInitStruct.HSI14CalibrationValue = 16;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
     Error_Handler();
@@ -149,16 +200,16 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                                |RCC_CLOCKTYPE_PCLK1;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI48;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    Error_Handler();
-  }
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK)
+    {
+      Error_Handler();
+    }
 
     /**Configure the Systick interrupt time 
     */
@@ -249,6 +300,12 @@ static void MX_ADC_Init(void)
     Error_Handler();
   }
 
+	/* ADC Calibration */
+
+	if (HAL_ADCEx_Calibration_Start(&hadc) != HAL_OK) {
+		Error_Handler();
+	}
+
 }
 
 /* DAC init function */
@@ -283,6 +340,14 @@ static void MX_DAC_Init(void)
 
 }
 
+void TIM6_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim6);
+
+}
+
+
+
 /* TIM6 init function */
 static void MX_TIM6_Init(void)
 {
@@ -290,9 +355,9 @@ static void MX_TIM6_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 10;
+  htim6.Init.Prescaler = 100;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 50;
+  htim6.Init.Period = 5;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -305,6 +370,16 @@ static void MX_TIM6_Init(void)
   {
     Error_Handler();
   }
+
+	HAL_NVIC_SetPriority(TIM6_IRQn, 0, 0);
+
+	HAL_NVIC_EnableIRQ(TIM6_IRQn);
+
+
+	if (HAL_TIM_Base_Start_IT(&htim6) != HAL_OK) {
+		Error_Handler();
+	}
+
 
 }
 
@@ -411,6 +486,32 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim->Instance == TIM6) //check if the interrupt comes from TIM6
+
+	{
+
+		counterdac++;
+		if (counterdac%1000==0)
+				{
+					if (useLeds)
+					{
+						HAL_GPIO_TogglePin(GPIOC, LD6_Pin); // Blue
+					}
+				}
+		// output for DAC
+		lutindex+=2;
+		if  (lutindex>=1024)
+		{
+			lutindex-=1024;
+		}
+		value_dac=Sine1024_12bit[lutindex];
+
+		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, value_dac);
+		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, value_dac);
+	}
+}
 
 /* USER CODE END 4 */
 
