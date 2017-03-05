@@ -50,6 +50,23 @@ TIM_HandleTypeDef htim6;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 uint16_t ADC_raw[6];
+
+volatile uint8_t countererror = 0;
+volatile uint8_t counter = 0;
+volatile uint16_t counteradc = 0;
+volatile uint16_t counterdac = 0;
+
+volatile uint16_t lutindex1 = 0;
+volatile uint16_t lutindex2 = 0;
+volatile uint16_t lutindex3 = 0;
+volatile uint16_t lutindex = 0;
+
+volatile uint16_t value1_dac = 0;
+volatile uint16_t value2_dac = 0;
+volatile uint16_t value3_dac = 0;
+volatile uint16_t value_dac = 0;
+
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -93,6 +110,8 @@ int main(void)
   MX_TIM6_Init();
 
   /* USER CODE BEGIN 2 */
+ // start DMA
+  HAL_ADC_Start_DMA(&hadc, ADC_raw, 6);
 
   /* USER CODE END 2 */
 
@@ -301,9 +320,6 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
-
-
-  HAL_ADC_Start_DMA(&hadc, ADC_raw, 6);
 
 }
 
