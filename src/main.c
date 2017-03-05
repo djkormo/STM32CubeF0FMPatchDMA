@@ -46,7 +46,7 @@ DMA_HandleTypeDef hdma_adc;
 DAC_HandleTypeDef hdac;
 
 TIM_HandleTypeDef htim6;
-
+TIM_HandleTypeDef htim15;
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
 uint16_t ADC_raw[6];
@@ -54,7 +54,9 @@ uint16_t ADC_raw[6];
 volatile uint8_t countererror = 0;
 volatile uint8_t counter = 0;
 volatile uint8_t counteradc = 0;
-volatile uint8_t counterdac = 0;
+volatile uint16_t counterdac = 0;
+volatile uint16_t countertim6 = 0;
+volatile uint16_t countertim15 = 0;
 
 volatile uint16_t lutindex1 = 0;
 volatile uint16_t lutindex2 = 0;
@@ -94,7 +96,11 @@ volatile uint16_t accumulator3step = 0;
 volatile uint32_t accumulator3r=5000000;
 volatile double VoltValue3 = 0.0;
 
-int useLeds = 1;
+
+volatile uint16_t ADC_lookup1 =5;
+volatile uint16_t ADC_lookup2 =10;
+volatile uint16_t ADC_lookup3 =20;
+int useLeds = 0;
 int useDAC  = 1;
 int useADC =  1;
 
@@ -109,6 +115,7 @@ static void MX_DMA_Init(void);
 static void MX_ADC_Init(void);
 static void MX_DAC_Init(void);
 static void MX_TIM6_Init(void);
+static void MX_TIM15_Init(void);
 
 /* USER CODE BEGIN PFP */
 /* Private function prototypes -----------------------------------------------*/
@@ -155,6 +162,8 @@ int main(void)
 	  		Error_Handler();
 	  	}
 
+	  	MX_TIM15_Init();
+
   }
   /* USER CODE BEGIN 2 */
  // start DMA
@@ -172,6 +181,19 @@ int main(void)
   /* USER CODE END WHILE */
 
   /* USER CODE BEGIN 3 */
+   counter++;
+   HAL_Delay(10);
+   /*
+   ADC_lookup1++;
+   if (ADC_lookup1>=50)
+   {
+	   ADC_lookup1=1;
+   }
+	*/
+
+   ADC_lookup1= (uint16_t) ADC_raw[0]/(100.0);
+   ADC_lookup2= (uint16_t) ADC_raw[1]/(100.0);
+   ADC_lookup3= (uint16_t) ADC_raw[2]/(100.0);
 
   }
   /* USER CODE END 3 */
@@ -188,7 +210,8 @@ void SystemClock_Config(void)
 
     /**Initializes the CPU, AHB and APB busses clocks 
     */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI14|RCC_OSCILLATORTYPE_HSI48;
+	//RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI14|RCC_OSCILLATORTYPE_HSI48;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI48;
 	RCC_OscInitStruct.HSI48State = RCC_HSI48_ON;
 	RCC_OscInitStruct.HSI14State = RCC_HSI14_ON;
 	RCC_OscInitStruct.HSI14CalibrationValue = 16;
@@ -213,11 +236,11 @@ void SystemClock_Config(void)
 
     /**Configure the Systick interrupt time 
     */
-  HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
+   HAL_SYSTICK_Config(HAL_RCC_GetHCLKFreq()/1000);
 
     /**Configure the Systick 
     */
-  HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
+   HAL_SYSTICK_CLKSourceConfig(SYSTICK_CLKSOURCE_HCLK);
 
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 0, 0);
@@ -253,8 +276,8 @@ static void MX_ADC_Init(void)
     /**Configure for the selected ADC regular channel to be converted. 
     */
   sConfig.Channel = ADC_CHANNEL_1;
-  sConfig.Rank = ADC_RANK_CHANNEL_NUMBER;
-  sConfig.SamplingTime = ADC_SAMPLETIME_71CYCLES_5;
+  sConfig.Rank =1;// ADC_RANK_CHANNEL_NUMBER;
+  sConfig.SamplingTime = ADC_SAMPLETIME_239CYCLES_5;
   if (HAL_ADC_ConfigChannel(&hadc, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -325,7 +348,8 @@ static void MX_DAC_Init(void)
     /**DAC channel OUT1 config 
     */
   sConfig.DAC_Trigger = DAC_TRIGGER_NONE;
-  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  //sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_ENABLE;
+  sConfig.DAC_OutputBuffer = DAC_OUTPUTBUFFER_DISABLE;
   if (HAL_DAC_ConfigChannel(&hdac, &sConfig, DAC_CHANNEL_1) != HAL_OK)
   {
     Error_Handler();
@@ -343,7 +367,6 @@ static void MX_DAC_Init(void)
 void TIM6_IRQHandler(void)
 {
   HAL_TIM_IRQHandler(&htim6);
-
 }
 
 
@@ -355,7 +378,7 @@ static void MX_TIM6_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 100;
+  htim6.Init.Prescaler = 50;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim6.Init.Period = 5;
   htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
@@ -375,13 +398,57 @@ static void MX_TIM6_Init(void)
 
 	HAL_NVIC_EnableIRQ(TIM6_IRQn);
 
-
+  // start TIM6 interrput
 	if (HAL_TIM_Base_Start_IT(&htim6) != HAL_OK) {
 		Error_Handler();
 	}
 
 
 }
+
+void TIM15_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim15);
+
+}
+
+
+
+/* TIM15 init function */
+static void MX_TIM15_Init(void)
+{
+
+  TIM_MasterConfigTypeDef sMasterConfig;
+
+  htim15.Instance = TIM15;
+  htim15.Init.Prescaler = 100;
+  htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim15.Init.Period = 50;
+  htim15.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
+  if (HAL_TIM_Base_Init(&htim15) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  sMasterConfig.MasterOutputTrigger = TIM_TRGO_RESET;
+  sMasterConfig.MasterSlaveMode = TIM_MASTERSLAVEMODE_DISABLE;
+  if (HAL_TIMEx_MasterConfigSynchronization(&htim15, &sMasterConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+	HAL_NVIC_SetPriority(TIM15_IRQn, 0, 0);
+
+	HAL_NVIC_EnableIRQ(TIM15_IRQn);
+
+  // start TIM15 interrput
+	if (HAL_TIM_Base_Start_IT(&htim15) != HAL_OK) {
+		Error_Handler();
+	}
+
+
+}
+
 
 /** 
   * Enable DMA controller clock
@@ -492,24 +559,59 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 	{
 
+		countertim6++;
 		counterdac++;
+
 		if (counterdac%1000==0)
 				{
 					if (useLeds)
 					{
 						HAL_GPIO_TogglePin(GPIOC, LD6_Pin); // Blue
+
 					}
+					ADC_lookup1= (uint16_t) ADC_raw[0]/(100.0);
+					ADC_lookup2= (uint16_t) ADC_raw[1]/(100.0);
+					ADC_lookup3= (uint16_t) ADC_raw[2]/(100.0);
+
 				}
 		// output for DAC
-		lutindex+=2;
-		if  (lutindex>=1024)
+		lutindex1+=ADC_lookup1;
+		if  (lutindex1>=1024)
 		{
-			lutindex-=1024;
+			lutindex1-=1024;
 		}
-		value_dac=Sine1024_12bit[lutindex];
+		value1_dac= (uint16_t) (Sine1024_12bit[lutindex1]);
 
+		lutindex2+=ADC_lookup2;
+		if  (lutindex2>=1024)
+		{
+			lutindex2-=1024;
+		}
+		value2_dac= (uint16_t) (Sine1024_12bit[lutindex2]);
+
+		lutindex3+=ADC_lookup3;
+
+		if  (lutindex3>=1024)
+		{
+			lutindex3-=1024;
+		}
+		value3_dac=(uint16_t) (Sine1024_12bit[lutindex3]);
+
+		//value_dac=(uint16_t) (value1_dac+value1_dac+value1_dac)/3.0;
+		//value_dac=(uint16_t) value1_dac+value2_dac+value3_dac;
+		//value_dac=(uint16_t) (value1_dac+value1_dac+value1_dac)*(0.33);
+		value_dac=value1_dac;
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, value_dac);
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, value_dac);
+	}
+
+	if (htim->Instance == TIM15) //check if the interrupt comes from TIM15
+	{
+		  countertim15++;
+		   ADC_lookup1= (uint16_t) ADC_raw[0]/(100.0);
+		   ADC_lookup2= (uint16_t) ADC_raw[1]/(100.0);
+		   ADC_lookup3= (uint16_t) ADC_raw[2]/(100.0);
+
 	}
 }
 
@@ -524,6 +626,7 @@ void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler */
   /* User can add his own implementation to report the HAL error return state */
+	 HAL_GPIO_WritePin(GPIOC, LD5_Pin,GPIO_PIN_SET); // Green
   while(1) 
   {
   }
