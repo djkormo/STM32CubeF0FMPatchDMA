@@ -33,7 +33,8 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "stm32f0xx_hal.h"
-
+#include "resources.h"
+#include "algorithm.h"
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -48,7 +49,7 @@ TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN PV */
 /* Private variables ---------------------------------------------------------*/
-uint16_t ADC_raw[5];
+uint16_t ADC_raw[6];
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -92,7 +93,7 @@ int main(void)
   MX_TIM6_Init();
 
   /* USER CODE BEGIN 2 */
-  HAL_ADC_Start_DMA(&hadc, ADC_raw, 5);
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -300,6 +301,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel1_IRQn);
+
+
+  HAL_ADC_Start_DMA(&hadc, ADC_raw, 6);
 
 }
 
