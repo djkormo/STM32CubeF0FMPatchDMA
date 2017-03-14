@@ -58,9 +58,9 @@ volatile uint32_t R = 107374182;
 volatile uint8_t countererror = 0;
 volatile uint8_t counter = 0;
 volatile uint8_t counteradc = 0;
-volatile uint16_t counterdac = 0;
-volatile uint16_t countertim6 = 0;
-volatile uint16_t countertim15 = 0;
+volatile uint8_t counterdac = 0;
+volatile uint8_t countertim6 = 0;
+volatile uint8_t countertim15 = 0;
 
 volatile uint16_t lutindex1 = 0;
 volatile uint16_t lutindex2 = 0;
@@ -106,7 +106,7 @@ volatile uint16_t ADC_lookup2 =10;
 volatile uint16_t ADC_lookup3 =20;
 int useLeds = 0;
 int useDAC  = 1;
-int useADC =  0;
+int useADC =  1;
 
 
 /* USER CODE END PV */
@@ -382,9 +382,9 @@ static void MX_TIM6_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim6.Instance = TIM6;
-  htim6.Init.Prescaler = 10;
+  htim6.Init.Prescaler = 50;
   htim6.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim6.Init.Period = 10;
+  htim6.Init.Period = 20;
   //htim6.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim6) != HAL_OK)
   {
@@ -425,9 +425,9 @@ static void MX_TIM15_Init(void)
   TIM_MasterConfigTypeDef sMasterConfig;
 
   htim15.Instance = TIM15;
-  htim15.Init.Prescaler = 50;
+  htim15.Init.Prescaler = 100;
   htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim15.Init.Period = 20;
+  htim15.Init.Period = 100;
   htim15.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
   if (HAL_TIM_Base_Init(&htim15) != HAL_OK)
   {
@@ -440,12 +440,13 @@ static void MX_TIM15_Init(void)
   {
     Error_Handler();
   }
-
-	HAL_NVIC_SetPriority(TIM15_IRQn, 0, 0);
+    // lowering priority ....
+	HAL_NVIC_SetPriority(TIM15_IRQn, 1, 2);
 
 	HAL_NVIC_EnableIRQ(TIM15_IRQn);
 
   // start TIM15 interrput
+
 	if (HAL_TIM_Base_Start_IT(&htim15) != HAL_OK) {
 		Error_Handler();
 	}
@@ -574,37 +575,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 					}
 
-					if (counterdac%2000==0)
-					{
-					for (int i=0;i<=2;i++)
-						{
-
-							 ADC_new[i]=(0.9)*ADC_old[i]+(0.1)*ADC_raw[i];
-							 ADC_old[i]=ADC_new[i];
-
-						}
-
-
-						/*
-
-
-	    	    		 accumulator1r=(uint32_t)10737418*
-	    	    	  	  		rangeScaleLinear(ADC_new[0],0,4095,1,100);
-
-	    	    		  accumulator2r=(uint32_t)10737418*
-	    	    	  	  		rangeScaleLinear(ADC_new[1],0,4095,1,100);
-
-	    	    		  accumulator3r=(uint32_t)107374182*
-	    	    	  	  		rangeScaleLinear(ADC_new[2],0,4095,1,10);
-						*/
-					}
-
-
-					accumulator1r-=10737418;
-					/*
-					accumulator2r+=10737418*2;
-					accumulator3r-=10737418;
-					*/
 				}
 
 		// output for DAC
@@ -620,18 +590,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		accumulator1angle=(uint16_t)(accumulator1>>22);
 		accumulator1step = Sine1024_12bit[accumulator1angle]/(3);
 
-		/*
+
 		accumulator2+=accumulator2r;
 		//  first 10 (32 -22) bits -> lut table index
 		accumulator2angle=(uint16_t)(accumulator2>>22);
 		accumulator2step = Sine1024_12bit[accumulator2angle]/(3);
-		*/
-		/*
+
+
 		accumulator3+=accumulator3r;
 		//  first 10 (32 -22) bits -> lut table index
 		accumulator3angle=(uint16_t)(accumulator3>>22);
 		accumulator3step = Sine1024_12bit[accumulator3angle]/(3);
-		*/
+
 		/*
 		lutindex+=50;
 		if (lutindex>=1023)
@@ -646,8 +616,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		//value_dac=(accumulator1step+accumulator1step+accumulator1step)/(3.0);
 		//value_dac=(uint16_t) (accumulator1step+accumulator1step+accumulator1step)/3.0;
 		//value_dac=accumulator1step+accumulator2step+accumulator3step;
+		//value_dac=accumulator1step+accumulator1step+accumulator1step;
 		value_dac=accumulator1step+accumulator2step+accumulator3step;
-		//value_dac=accumulator1step;
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, value_dac);
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, value_dac);
 	}
@@ -655,12 +625,39 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM15) //check if the interrupt comes from TIM15
 	{
 		  countertim15++;
-		  /*
-		   ADC_lookup1= (uint16_t) ADC_raw[0]/(100.0);
-		   ADC_lookup2= (uint16_t) ADC_raw[1]/(100.0);
-		   ADC_lookup3= (uint16_t) ADC_raw[2]/(100.0);
-		*/
-	}
+
+
+		  for (int i=0;i<=2;i++)
+		  						{
+
+		  							 ADC_new[i]=(0.9)*ADC_old[i]+(0.1)*ADC_raw[i];
+		  							 ADC_old[i]=ADC_new[i];
+
+		  						}
+
+
+
+
+
+		  	    	    		 accumulator1r=(uint32_t)1073741*
+		  	    	    	  	  		rangeScaleLinear(ADC_new[0],0,4095,1,2000);
+		  	    	    		  /*
+		  	    	    		  accumulator2r=(uint32_t)1073741*
+		  	    	    	  	  		rangeScaleLinear(ADC_new[1],0,4095,1,2000);
+		  	    	    		  */
+		  	    	    		  accumulator3r=(uint32_t)1073741*
+		  	    	    	  	  		rangeScaleLinear(ADC_new[2],0,4095,1,2000);
+
+
+
+		  					//accumulator1r-=10737418;
+		  					/*
+		  					accumulator2r+=10737418*2;
+		  					accumulator3r-=10737418;
+		  					*/
+		  				}
+
+
 }
 
 /* USER CODE END 4 */
