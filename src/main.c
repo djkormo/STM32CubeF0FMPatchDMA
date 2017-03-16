@@ -83,14 +83,14 @@ volatile uint32_t accumulator1 = 0;
 volatile uint16_t accumulator1angle = 0;
 volatile uint16_t accumulator1step = 0;
 
-volatile uint32_t accumulator1r = 107374182;
+volatile uint32_t accumulator1r = 107374182*2;
 volatile double VoltValue1 = 0.0;
 
 //2nd sine
 volatile uint32_t accumulator2 = 0;
 volatile uint16_t accumulator2angle = 0;
 volatile uint16_t accumulator2step = 0;
-volatile uint32_t accumulator2r=107374182*2;
+volatile uint32_t accumulator2r=10737418;
 volatile double VoltValue2 = 0.0;
 
 //3rd sine
@@ -630,7 +630,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		  for (int i=0;i<=2;i++)
 		  						{
 
-		  							 ADC_new[i]=(0.9)*ADC_old[i]+(0.1)*ADC_raw[i];
+		  							 ADC_new[i]=(0.8)*ADC_old[i]+(0.2)*ADC_raw[i];
 		  							 ADC_old[i]=ADC_new[i];
 
 		  						}
@@ -639,14 +639,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 
 
-		  	    	    		 accumulator1r=(uint32_t)1073741*
-		  	    	    	  	  		rangeScaleLinear(ADC_new[0],0,4095,1,2000);
+		  	    	    		 accumulator1r=(uint32_t)107374*
+		  	    	    	  	  		rangeScaleLinear(ADC_new[0],0,4095,1,20000);
 		  	    	    		  /*
-		  	    	    		  accumulator2r=(uint32_t)1073741*
-		  	    	    	  	  		rangeScaleLinear(ADC_new[1],0,4095,1,2000);
-		  	    	    		  */
-		  	    	    		  accumulator3r=(uint32_t)1073741*
-		  	    	    	  	  		rangeScaleLinear(ADC_new[2],0,4095,1,2000);
+		  	    	    		  accumulator2r=(uint32_t)107374*
+		  	    	    	  	  		rangeScaleLinear(ADC_new[1],0,4095,1,10000);
+								  */
+		  	    	    		  accumulator3r=(uint32_t)107374*
+		  	    	    	  	  		rangeScaleLinear(ADC_new[2],0,4095,1,20000);
 
 
 
