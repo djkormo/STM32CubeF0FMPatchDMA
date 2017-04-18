@@ -640,13 +640,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 
 
 		  	    	    		 accumulator1r=(uint32_t)107374*
-		  	    	    	  	  		rangeScaleLinear(ADC_new[0],0,4095,1,20000);
-		  	    	    		  /*
+		  	    	    	  	  		rangeScaleLinear(ADC_new[0],0,4095,1,10000);
+
 		  	    	    		  accumulator2r=(uint32_t)107374*
 		  	    	    	  	  		rangeScaleLinear(ADC_new[1],0,4095,1,10000);
-								  */
+
 		  	    	    		  accumulator3r=(uint32_t)107374*
-		  	    	    	  	  		rangeScaleLinear(ADC_new[2],0,4095,1,20000);
+		  	    	    	  	  		rangeScaleLinear(ADC_new[2],0,4095,1,10000);
 
 
 
