@@ -35,6 +35,7 @@
 #include "stm32f0xx_hal.h"
 #include "resources.h"
 #include "algorithm.h"
+#include "Profiling\gmon.h"
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -100,7 +101,53 @@ volatile uint16_t accumulator3step = 0;
 volatile uint32_t accumulator3r=107374182*4;
 volatile double VoltValue3 = 0.0;
 
+// 4rd sine
+volatile uint32_t accumulator4 = 0;
+volatile uint16_t accumulator4angle = 0;
+volatile uint16_t accumulator4step = 0;
+volatile uint32_t accumulator4r = 107374182*2;
+volatile double VoltValue4 = 0.0;
 
+//5th sine
+volatile uint32_t accumulator5 = 0;
+volatile uint16_t accumulator5angle = 0;
+volatile uint16_t accumulator5step = 0;
+volatile uint32_t accumulator5r=10737418;
+volatile double VoltValue5 = 0.0;
+
+//6th sine
+volatile uint32_t accumulator6 = 0;
+volatile uint16_t accumulator6angle = 0;
+volatile uint16_t accumulator6step = 0;
+volatile uint32_t accumulator6r=107374182*4;
+volatile double VoltValue6 = 0.0;
+
+
+//7th sine
+volatile uint32_t accumulator7 = 0;
+volatile uint16_t accumulator7angle = 0;
+volatile uint16_t accumulator7step = 0;
+volatile uint32_t accumulator7r=107374182*4;
+volatile double VoltValue7 = 0.0;
+
+//8th sine
+volatile uint32_t accumulator8 = 0;
+volatile uint16_t accumulator8angle = 0;
+volatile uint16_t accumulator8step = 0;
+volatile uint32_t accumulator8r=107374182*4;
+volatile double VoltValue8 = 0.0;
+
+
+//9th sine
+volatile uint32_t accumulator9 = 0;
+volatile uint16_t accumulator9angle = 0;
+volatile uint16_t accumulator9step = 0;
+volatile uint32_t accumulator9r=107374182*4;
+volatile double VoltValue9 = 0.0;
+
+
+volatile uint16_t fmDepth =0;
+volatile uint16_t fmOutput=0;
 volatile uint16_t ADC_lookup1 =5;
 volatile uint16_t ADC_lookup2 =10;
 volatile uint16_t ADC_lookup3 =20;
@@ -603,6 +650,42 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		accumulator3step = Sine1024_12bit[accumulator3angle]/(3);
 
 		/*
+		accumulator4+=accumulator4r;
+		//  first 10 (32 -22) bits -> lut table index
+		accumulator4angle=(uint16_t)(accumulator4>>22);
+		accumulator4step = Sine1024_12bit[accumulator4angle]/(9);
+
+
+		accumulator5+=accumulator5r;
+		//  first 10 (32 -22) bits -> lut table index
+		accumulator5angle=(uint16_t)(accumulator5>>22);
+		accumulator5step = Sine1024_12bit[accumulator5angle]/(9);
+
+
+		accumulator6+=accumulator6r;
+		//  first 10 (32 -22) bits -> lut table index
+		accumulator6angle=(uint16_t)(accumulator6>>22);
+		accumulator6step = Sine1024_12bit[accumulator6angle]/(9);
+
+
+		accumulator7+=accumulator7r;
+		//  first 10 (32 -22) bits -> lut table index
+		accumulator7angle=(uint16_t)(accumulator7>>22);
+		accumulator7step = Sine1024_12bit[accumulator7angle]/(9);
+
+
+		accumulator8+=accumulator8r;
+		//  first 10 (32 -22) bits -> lut table index
+		accumulator8angle=(uint16_t)(accumulator8>>22);
+		accumulator8step = Sine1024_12bit[accumulator8angle]/(9);
+
+
+		accumulator9+=accumulator9r;
+		//  first 10 (32 -22) bits -> lut table index
+		accumulator9angle=(uint16_t)(accumulator9>>22);
+		accumulator9step = Sine1024_12bit[accumulator9angle]/(9);
+		*/
+		/*
 		lutindex+=50;
 		if (lutindex>=1023)
 		{
@@ -617,7 +700,29 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		//value_dac=(uint16_t) (accumulator1step+accumulator1step+accumulator1step)/3.0;
 		//value_dac=accumulator1step+accumulator2step+accumulator3step;
 		//value_dac=accumulator1step+accumulator1step+accumulator1step;
-		value_dac=accumulator1step+accumulator2step+accumulator3step;
+		value_dac=	accumulator1step+accumulator2step+accumulator3step;
+					/*+
+					accumulator4step+accumulator5step+accumulator6step+
+					accumulator7step+accumulator8step+accumulator9step
+					*/
+
+
+		/* value_dac = Sine1024_12bit[accumulator1angle +Depth* Sine1024_12bit[accumulator2angle]]  */
+		//*TODO
+		/*
+		Czyli tym razem wartoœæ odczytana z 3. potsa zamiast trzeciej sinusoidy (której nie ma)
+		bêdzie sterowaæ parametrem Depth
+
+		przy czym uwaga: akumulator_fazy_1 bierzesz wpierw modulo d³ugoœæ tablicy,
+		potem dodajesz do wyniku ten Depth*sin
+		(co mo¿e daæ równie¿ ujemny wynik)
+		i znów traktujesz modulo d³ugoœæ tablicy
+		*/
+
+		//fmOutput=accumulator1angle+fmDepth*Sine1024_12bit[accumulator3angle];
+
+		//value_dac =Sine1024_12bit[accumulator1angle];// +fmDepth*Sine1024_12bit[accumulator3angle ]];
+
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, value_dac);
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_2, DAC_ALIGN_12B_R, value_dac);
 	}
@@ -645,9 +750,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		  	    	    		  accumulator2r=(uint32_t)107374*
 		  	    	    	  	  		rangeScaleLinear(ADC_new[1],0,4095,1,10000);
 
+		  	    	    		 fmDepth=ADC_new[1];
+
 		  	    	    		  accumulator3r=(uint32_t)107374*
 		  	    	    	  	  		rangeScaleLinear(ADC_new[2],0,4095,1,10000);
 
+		  	    	    		/*
+		  	    	    		accumulator4r=2*accumulator1r;
+		  	    	    		accumulator5r=2*accumulator2r;
+		  	    	    		accumulator6r=2*accumulator3r;
+		  	    	    		accumulator7r=4*accumulator1r;
+		  	    	    		accumulator8r=4*accumulator2r;
+		  	    	    		accumulator9r=4*accumulator3r;
+								*/
 
 
 		  					//accumulator1r-=10737418;
