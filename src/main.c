@@ -36,6 +36,9 @@
 #include "resources.h"
 #include "algorithm.h"
 #include "Profiling\gmon.h"
+#include "qfpio.h"
+#include "qfplib.h"
+#include "Profiling\gmon.h"
 /* USER CODE BEGIN Includes */
 
 /* USER CODE END Includes */
@@ -700,7 +703,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		//value_dac=(uint16_t) (accumulator1step+accumulator1step+accumulator1step)/3.0;
 		//value_dac=accumulator1step+accumulator2step+accumulator3step;
 		//value_dac=accumulator1step+accumulator1step+accumulator1step;
-		value_dac=	accumulator1step+accumulator2step+accumulator3step;
+		//value_dac=	accumulator1step+accumulator2step+accumulator3step;
 					/*+
 					accumulator4step+accumulator5step+accumulator6step+
 					accumulator7step+accumulator8step+accumulator9step
@@ -719,8 +722,20 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		i znów traktujesz modulo d³ugoœæ tablicy
 		*/
 
-		//fmOutput=accumulator1angle+fmDepth*Sine1024_12bit[accumulator3angle];
+		fmOutput=accumulator1angle+fmDepth*Sine1024_12bit[accumulator3angle];
+		/*
+		if (fmOutput>1024)
+				{
+					fmOutput-=1024;
+				}
+		if (fmOutput<0)
+						{
+							fmOutput+=1024;
+						}
+		*/
+		fmOutput=fmOutput%1024;
 
+		value_dac=Sine1024_12bit[fmOutput];
 		//value_dac =Sine1024_12bit[accumulator1angle];// +fmDepth*Sine1024_12bit[accumulator3angle ]];
 
 		HAL_DAC_SetValue(&hdac, DAC_CHANNEL_1, DAC_ALIGN_12B_R, value_dac);
@@ -750,7 +765,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		  	    	    		  accumulator2r=(uint32_t)107374*
 		  	    	    	  	  		rangeScaleLinear(ADC_new[1],0,4095,1,10000);
 
-		  	    	    		 fmDepth=ADC_new[1];
+		  	    	    		 fmDepth= (ADC_new[1]/200.0);
 
 		  	    	    		  accumulator3r=(uint32_t)107374*
 		  	    	    	  	  		rangeScaleLinear(ADC_new[2],0,4095,1,10000);
